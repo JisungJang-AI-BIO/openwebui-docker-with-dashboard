@@ -11,7 +11,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+# lib/ at project root only (not frontend/src/lib/)
+/lib/
 lib64/
 parts/
 sdist/
@@ -32,6 +33,7 @@ ENV/
 
 # Project Specific
 data/
+backups/
 .env.local
 .DS_Store
 .webui_secret_key

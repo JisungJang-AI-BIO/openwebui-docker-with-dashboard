@@ -1,94 +1,140 @@
-# Open WebUI Dashboard (WSL Development Environment)
+# Open WebUI Dashboard
 
-This project provides a development environment for an Open WebUI dashboard that mirrors a production on-premise setup.
+Analytics dashboard for Open WebUI — connects to the existing PostgreSQL database and visualizes chat usage, model statistics, and feedback data.
 
-## Prerequisites
-- Windows with WSL 2 enabled.
-- Ubuntu installed in WSL.
-- Docker Desktop for Windows (configured to work with WSL 2).
+## Architecture
 
-## Setup Instructions
+```
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│   Frontend   │────▶│   Backend    │────▶│  PostgreSQL   │
+│  React + TS  │     │   FastAPI    │     │  (pgvector)   │
+│  port 3005   │     │  port 8005   │     │  port 5435    │
+└──────────────┘     └──────────────┘     └──────────────┘
+```
 
-### 1. Configure Environment Variables
-Copy the example environment file and fill in your secrets:
+All services run as Docker containers via `docker-compose.yml`.
+
+## Features
+
+- **Overview Stats**: Total chats, messages, models used, feedbacks
+- **Daily Usage Chart**: Bar chart with from/to date range picker (KST)
+- **Model Usage**: Pie chart by model, average response length comparison
+- **Recent Chats**: Sortable table with title, model, message count, timestamps
+- **Feedback Summary**: Positive/negative ratio and recent feedback list
+
+## Quick Start
+
+### Prerequisites
+
+- Docker & Docker Compose
+- `.env` file with database credentials (see `.env.example` or below)
+
+### 1. Configure Environment
+
 ```bash
 cp .env.example .env
-# Edit .env and set your passwords and secrets
+# Edit .env with your database credentials
 ```
 
-### 2. Setup Conda Environment (WSL)
-Run the setup script inside your WSL terminal:
+Required variables:
+```
+POSTGRES_DB=openwebui
+POSTGRES_USER=openwebui_admin
+POSTGRES_PASSWORD=<your_password>
+POSTGRES_PORT_INTERNAL=5432
+POSTGRES_PORT_HOST=5435
+BACKEND_PORT_INTERNAL=8000
+BACKEND_PORT_HOST=8005
+FRONTEND_PORT_INTERNAL=5173
+FRONTEND_PORT_HOST=3005
+```
+
+### 2. Build & Run
+
 ```bash
-# In WSL terminal, navigate to the project directory:
-cd /mnt/d/openwebui-dashboard
-bash setup_env.sh
+docker compose up --build -d
 ```
-This will:
-- Install Miniforge (if not present) to `/mnt/d/miniforge3`.
-- Create a `openwebui` conda environment with Python 3.11.
-- Install `open-webui[all]`.
 
-## Integration Guide (Existing Environment)
+### 3. Access
 
-If you already have Open WebUI and PostgreSQL running in your environment:
+- **Dashboard**: http://localhost:3005
+- **API**: http://localhost:8005
+- **API Docs**: http://localhost:8005/docs
 
-1.  **Configure Environment**:
-    - Ensure your `.env` file contains the correct database credentials (`POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`) and `POSTGRES_HOST`.
-    - If running on the same machine but outside Docker, `POSTGRES_HOST` should be `localhost`.
-    - If running in Docker, you might need to connect to the existing network.
+## API Endpoints
 
-2.  **Run Dashboard**:
-    Navigate to the `dashboard` directory and run:
-    ```bash
-    cd dashboard
-    docker-compose up -d --build
-    ```
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/health` | Database health check |
+| GET | `/api/stats/overview` | Total chats, messages, models, feedbacks |
+| GET | `/api/stats/daily?from=YYYY-MM-DD&to=YYYY-MM-DD` | Daily usage (KST dates) |
+| GET | `/api/stats/models` | Model usage count and avg response length |
+| GET | `/api/chats/recent?limit=20` | Recent chat list |
+| GET | `/api/feedbacks/summary` | Feedback positive/negative + recent list |
 
-3.  **Access**:
-    Open your browser and navigate to `http://localhost:8501`.
+## Port Configuration
 
-## Development Setup (From Scratch)
+| Service | Host Port | Internal Port | Description |
+|---------|-----------|---------------|-------------|
+| PostgreSQL | 5435 | 5432 | Open WebUI database |
+| Backend (FastAPI) | 8005 | 8000 | Dashboard API server |
+| Frontend (React) | 3005 | 5173 | Dashboard UI |
 
-1.  **Environment Setup**:
-    - Run `bash setup_env.sh` to install Miniforge and create the Conda environment.
-    - Activate the environment: `conda activate openwebui`.
+> **Note**: Port 5432 is reserved for the production PostgreSQL instance.
 
-2.  **Database**:
-    - Start the PostgreSQL container: `docker-compose up -d postgres`.
+## Production Deployment
 
-3.  **Run Dashboard**:
-    - Navigate to `dashboard/` and run `streamlit run app.py`.
+This project is fully containerized. To deploy on a production server:
 
-### 3. Start Database
-Start the PostgreSQL + pgvector database using Docker Compose:
 ```bash
-docker-compose up -d postgres
+git clone <repo-url>
+cd openwebui-dashboard
+cp .env.example .env   # configure with production DB credentials
+docker compose up --build -d
 ```
 
-### 4. Run Open WebUI (Optional)
-To populate the database with initial data, you can run Open WebUI:
-```bash
-conda activate openwebui
-# Ensure env vars are set or exported
-export POSTGRES_DB=openwebui
-export POSTGRES_USER=openwebui_admin
-export POSTGRES_PASSWORD=your_password
-# ... export other vars ...
-open-webui serve
-```
-*Note: Make sure Open WebUI is configured to use the PostgreSQL database running in Docker.*
+For production, point `POSTGRES_HOST` to the existing Open WebUI PostgreSQL instance instead of the local container.
 
-### 5. Run Dashboard
-Start the dashboard application:
+## Development (Local Open WebUI)
+
+To generate test chat data locally:
+
 ```bash
-conda activate openwebui
-pip install -r dashboard/requirements.txt
-streamlit run dashboard/app.py
+# Start only the database
+docker compose up -d postgres
+
+# Run Open WebUI via conda
+bash start_openwebui.sh
+# Open WebUI available at http://localhost:30072
 ```
-Open your browser to `http://localhost:8501`.
 
 ## Project Structure
-- `planning.md`: detailed project plan.
-- `setup_env.sh`: Automated environment setup script.
-- `docker-compose.yml`: Database configuration.
-- `dashboard/`: Dashboard source code.
+
+```
+├── backend/
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   └── app/
+│       └── main.py          # FastAPI endpoints
+├── frontend/
+│   ├── Dockerfile
+│   ├── package.json
+│   └── src/
+│       ├── App.tsx           # Root component
+│       ├── lib/api.ts        # API client (axios)
+│       ├── components/       # Reusable UI components
+│       └── pages/            # Dashboard page
+├── docker-compose.yml
+├── .env
+├── backup_db.sh              # One-click DB backup script
+└── docs/
+    └── postgresql-backup-guide.md
+```
+
+## Database Backup
+
+```bash
+bash backup_db.sh
+```
+
+See `docs/postgresql-backup-guide.md` for detailed backup/restore instructions.

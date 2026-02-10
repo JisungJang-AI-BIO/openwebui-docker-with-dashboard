@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: pgvector/pgvector:pg16
@@ -9,7 +7,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - ./data/db:/var/lib/postgresql/data
+      - openwebui_pgdata:/var/lib/postgresql/data
     ports:
       - "${POSTGRES_PORT_HOST}:${POSTGRES_PORT_INTERNAL}"
     restart: always
@@ -37,16 +35,16 @@ services:
       - ./backend/app:/app/app
 
   frontend:
-    image: node:20-slim
+    build: ./frontend
     container_name: dashboard-frontend
-    working_dir: /app
     ports:
       - "${FRONTEND_PORT_HOST}:${FRONTEND_PORT_INTERNAL}"
-    volumes:
-      - ./frontend:/app
     environment:
       - CHOKIDAR_USEPOLLING=true
       - FRONTEND_PORT=${FRONTEND_PORT_INTERNAL}
-    command: npm run dev -- --host
     depends_on:
       - backend
+
+volumes:
+  openwebui_pgdata:
+    driver: local
