@@ -4,11 +4,15 @@ import StatCard from "@/components/StatCard";
 import DailyChart from "@/components/DailyChart";
 import ModelBarChart from "@/components/ModelBarChart";
 import WorkspaceRankingTable from "@/components/WorkspaceRankingTable";
+import DeveloperRankingTable from "@/components/DeveloperRankingTable";
+import GroupRankingTable from "@/components/GroupRankingTable";
 import FeedbackSummary from "@/components/FeedbackSummary";
 import {
-  fetchOverview, fetchDailyStats, fetchWorkspaceRanking, fetchFeedbackSummary,
+  fetchOverview, fetchDailyStats, fetchWorkspaceRanking,
+  fetchDeveloperRanking, fetchGroupRanking, fetchFeedbackSummary,
   type OverviewStats, type DailyStat,
-  type WorkspaceRanking, type FeedbackSummary as FeedbackSummaryType,
+  type WorkspaceRanking, type DeveloperRanking, type GroupRanking,
+  type FeedbackSummary as FeedbackSummaryType,
 } from "@/lib/api";
 
 function todayKST(): string {
@@ -23,6 +27,8 @@ export default function Dashboard() {
   const [overview, setOverview] = useState<OverviewStats | null>(null);
   const [daily, setDaily] = useState<DailyStat[]>([]);
   const [workspaces, setWorkspaces] = useState<WorkspaceRanking[]>([]);
+  const [developers, setDevelopers] = useState<DeveloperRanking[]>([]);
+  const [groups, setGroups] = useState<GroupRanking[]>([]);
   const [feedback, setFeedback] = useState<FeedbackSummaryType | null>(null);
   const [dateFrom, setDateFrom] = useState(daysAgoKST(29));
   const [dateTo, setDateTo] = useState(todayKST());
@@ -33,6 +39,8 @@ export default function Dashboard() {
       fetchOverview().then(setOverview),
       fetchDailyStats(dateFrom, dateTo).then(setDaily),
       fetchWorkspaceRanking().then(setWorkspaces),
+      fetchDeveloperRanking().then(setDevelopers),
+      fetchGroupRanking().then(setGroups),
       fetchFeedbackSummary().then(setFeedback),
     ]).finally(() => setLoading(false));
   }, []);
@@ -62,6 +70,8 @@ export default function Dashboard() {
       <DailyChart data={daily} dateFrom={dateFrom} dateTo={dateTo} onDateChange={handleDateChange} />
       <WorkspaceRankingTable data={workspaces} />
       <ModelBarChart data={workspaces} />
+      <DeveloperRankingTable data={developers} />
+      <GroupRankingTable data={groups} />
       <FeedbackSummary data={feedback} />
     </div>
   );

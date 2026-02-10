@@ -59,6 +59,7 @@ export default function DailyChart({ data, dateFrom, dateTo, onDateChange }: Dai
               }}
             />
             <Legend />
+            <Bar dataKey="user_count" name="Users" fill="#10b981" radius={[4, 4, 0, 0]} />
             <Bar dataKey="chat_count" name="Chats" fill="#3b82f6" radius={[4, 4, 0, 0]} />
             <Bar dataKey="message_count" name="Messages" fill="#f59e0b" radius={[4, 4, 0, 0]} />
           </BarChart>

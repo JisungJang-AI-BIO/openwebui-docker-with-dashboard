@@ -1,24 +1,26 @@
 import { useState } from "react";
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
-import { type WorkspaceRanking } from "@/lib/api";
+import { type GroupRanking } from "@/lib/api";
 
-interface WorkspaceRankingTableProps {
-  data: WorkspaceRanking[];
+interface GroupRankingTableProps {
+  data: GroupRanking[];
 }
 
-type SortKey = "user_count" | "chat_count" | "message_count" | "positive" | "negative";
+type SortKey = "member_count" | "total_chats" | "total_messages" | "total_positive" | "total_negative" | "chats_per_member" | "messages_per_member";
 type SortDir = "asc" | "desc";
 
 const COLUMNS: { key: SortKey; label: string }[] = [
-  { key: "user_count", label: "Users" },
-  { key: "chat_count", label: "Chats" },
-  { key: "message_count", label: "Messages" },
-  { key: "positive", label: "Positive" },
-  { key: "negative", label: "Negative" },
+  { key: "member_count", label: "Members" },
+  { key: "chats_per_member", label: "Chats/Member" },
+  { key: "messages_per_member", label: "Msgs/Member" },
+  { key: "total_chats", label: "Total Chats" },
+  { key: "total_messages", label: "Total Msgs" },
+  { key: "total_positive", label: "Positive" },
+  { key: "total_negative", label: "Negative" },
 ];
 
-export default function WorkspaceRankingTable({ data }: WorkspaceRankingTableProps) {
-  const [sortKey, setSortKey] = useState<SortKey>("chat_count");
+export default function GroupRankingTable({ data }: GroupRankingTableProps) {
+  const [sortKey, setSortKey] = useState<SortKey>("chats_per_member");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   const handleSort = (key: SortKey) => {
@@ -44,13 +46,13 @@ export default function WorkspaceRankingTable({ data }: WorkspaceRankingTablePro
 
   return (
     <div className="rounded-xl border border-border bg-card p-6">
-      <h3 className="mb-4 text-lg font-semibold">Workspace Ranking</h3>
+      <h3 className="mb-4 text-lg font-semibold">Best Group Ranking</h3>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-left text-muted-foreground">
               <th className="pb-3 pr-4 font-medium w-12">#</th>
-              <th className="pb-3 pr-4 font-medium">Workspace</th>
+              <th className="pb-3 pr-4 font-medium">Group</th>
               {COLUMNS.map((col) => (
                 <th
                   key={col.key}
@@ -64,31 +66,26 @@ export default function WorkspaceRankingTable({ data }: WorkspaceRankingTablePro
             </tr>
           </thead>
           <tbody>
-            {sorted.map((ws, i) => (
-              <tr key={ws.id} className="border-b border-border/50 hover:bg-muted/50">
+            {sorted.map((g, i) => (
+              <tr key={g.group_id} className="border-b border-border/50 hover:bg-muted/50">
                 <td className="py-3 pr-4 text-muted-foreground font-mono">{i + 1}</td>
-                <td className="py-3 pr-4">
-                  <div>
-                    <span className="font-medium">{ws.name}</span>
-                    {ws.name !== ws.id && (
-                      <span className="ml-2 text-xs text-muted-foreground">{ws.id}</span>
-                    )}
-                  </div>
-                </td>
-                <td className="py-3 pr-4 text-right font-mono">{ws.user_count}</td>
-                <td className="py-3 pr-4 text-right font-mono">{ws.chat_count}</td>
-                <td className="py-3 pr-4 text-right font-mono">{ws.message_count}</td>
+                <td className="py-3 pr-4 font-medium">{g.group_name}</td>
+                <td className="py-3 pr-4 text-right font-mono">{g.member_count}</td>
+                <td className="py-3 pr-4 text-right font-mono">{g.chats_per_member}</td>
+                <td className="py-3 pr-4 text-right font-mono">{g.messages_per_member}</td>
+                <td className="py-3 pr-4 text-right font-mono">{g.total_chats}</td>
+                <td className="py-3 pr-4 text-right font-mono">{g.total_messages}</td>
                 <td className="py-3 pr-4 text-right">
-                  <span className="font-mono text-emerald-400">{ws.positive}</span>
+                  <span className="font-mono text-emerald-400">{g.total_positive}</span>
                 </td>
                 <td className="py-3 pr-4 text-right">
-                  <span className="font-mono text-rose-400">{ws.negative}</span>
+                  <span className="font-mono text-rose-400">{g.total_negative}</span>
                 </td>
               </tr>
             ))}
             {sorted.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-10 text-center text-muted-foreground">No workspace data.</td>
+                <td colSpan={9} className="py-10 text-center text-muted-foreground">No group data.</td>
               </tr>
             )}
           </tbody>
