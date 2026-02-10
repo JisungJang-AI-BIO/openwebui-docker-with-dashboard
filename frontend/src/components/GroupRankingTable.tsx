@@ -6,7 +6,7 @@ interface GroupRankingTableProps {
   data: GroupRanking[];
 }
 
-type SortKey = "member_count" | "total_chats" | "total_messages" | "total_positive" | "total_negative" | "chats_per_member" | "messages_per_member";
+type SortKey = "member_count" | "total_chats" | "total_messages" | "rating" | "chats_per_member" | "messages_per_member";
 type SortDir = "asc" | "desc";
 
 const COLUMNS: { key: SortKey; label: string }[] = [
@@ -15,9 +15,18 @@ const COLUMNS: { key: SortKey; label: string }[] = [
   { key: "messages_per_member", label: "Msgs/Member" },
   { key: "total_chats", label: "Total Chats" },
   { key: "total_messages", label: "Total Msgs" },
-  { key: "total_positive", label: "\ud83d\udc4d" },
-  { key: "total_negative", label: "\ud83d\udc4e" },
+  { key: "rating", label: "Rating" },
 ];
+
+function getRating(row: GroupRanking) {
+  return row.total_positive - row.total_negative;
+}
+
+function RatingCell({ value }: { value: number }) {
+  if (value > 0) return <span className="font-mono text-emerald-400">+{value}</span>;
+  if (value < 0) return <span className="font-mono text-rose-400">{value}</span>;
+  return <span className="font-mono text-muted-foreground">0</span>;
+}
 
 export default function GroupRankingTable({ data }: GroupRankingTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>("chats_per_member");
@@ -33,8 +42,9 @@ export default function GroupRankingTable({ data }: GroupRankingTableProps) {
   };
 
   const sorted = [...data].sort((a, b) => {
-    const diff = a[sortKey] - b[sortKey];
-    return sortDir === "desc" ? -diff : diff;
+    const va = sortKey === "rating" ? getRating(a) : a[sortKey];
+    const vb = sortKey === "rating" ? getRating(b) : b[sortKey];
+    return sortDir === "desc" ? vb - va : va - vb;
   });
 
   const SortIcon = ({ col }: { col: SortKey }) => {
@@ -75,17 +85,12 @@ export default function GroupRankingTable({ data }: GroupRankingTableProps) {
                 <td className="py-3 pr-4 text-right font-mono">{g.messages_per_member}</td>
                 <td className="py-3 pr-4 text-right font-mono">{g.total_chats}</td>
                 <td className="py-3 pr-4 text-right font-mono">{g.total_messages}</td>
-                <td className="py-3 pr-4 text-right">
-                  <span className="font-mono text-emerald-400">{g.total_positive}</span>
-                </td>
-                <td className="py-3 pr-4 text-right">
-                  <span className="font-mono text-rose-400">{g.total_negative}</span>
-                </td>
+                <td className="py-3 pr-4 text-right"><RatingCell value={getRating(g)} /></td>
               </tr>
             ))}
             {sorted.length === 0 && (
               <tr>
-                <td colSpan={9} className="py-10 text-center text-muted-foreground">No group data.</td>
+                <td colSpan={8} className="py-10 text-center text-muted-foreground">No group data.</td>
               </tr>
             )}
           </tbody>

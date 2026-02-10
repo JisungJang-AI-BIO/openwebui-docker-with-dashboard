@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MessageSquare, Bot, Hash, Star } from "lucide-react";
+import { MessagesSquare, MessageSquare, Bot, ThumbsUp } from "lucide-react";
 import StatCard from "@/components/StatCard";
 import DailyChart from "@/components/DailyChart";
 import WorkspaceRankingTable from "@/components/WorkspaceRankingTable";
@@ -57,10 +57,10 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Total Chats" value={overview?.total_chats ?? 0} icon={MessageSquare} />
-        <StatCard title="Total Messages" value={overview?.total_messages ?? 0} icon={Hash} />
+        <StatCard title="Total Chats" value={overview?.total_chats ?? 0} icon={MessagesSquare} />
+        <StatCard title="Total Messages" value={overview?.total_messages ?? 0} icon={MessageSquare} />
         <StatCard title="Workspaces" value={overview?.total_models ?? 0} icon={Bot} />
-        <StatCard title="Feedbacks" value={overview?.total_feedbacks ?? 0} icon={Star} />
+        <StatCard title="Feedbacks" value={overview?.total_feedbacks ?? 0} icon={ThumbsUp} />
       </div>
       <DailyChart data={daily} dateFrom={dateFrom} dateTo={dateTo} onDateChange={handleDateChange} />
       <WorkspaceRankingTable data={workspaces} />

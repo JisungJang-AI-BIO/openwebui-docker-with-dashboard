@@ -6,16 +6,25 @@ interface WorkspaceRankingTableProps {
   data: WorkspaceRanking[];
 }
 
-type SortKey = "user_count" | "chat_count" | "message_count" | "positive" | "negative";
+type SortKey = "user_count" | "chat_count" | "message_count" | "rating";
 type SortDir = "asc" | "desc";
 
 const COLUMNS: { key: SortKey; label: string }[] = [
   { key: "user_count", label: "Users" },
   { key: "chat_count", label: "Chats" },
   { key: "message_count", label: "Messages" },
-  { key: "positive", label: "\ud83d\udc4d" },
-  { key: "negative", label: "\ud83d\udc4e" },
+  { key: "rating", label: "Rating" },
 ];
+
+function getRating(row: WorkspaceRanking) {
+  return row.positive - row.negative;
+}
+
+function RatingCell({ value }: { value: number }) {
+  if (value > 0) return <span className="font-mono text-emerald-400">+{value}</span>;
+  if (value < 0) return <span className="font-mono text-rose-400">{value}</span>;
+  return <span className="font-mono text-muted-foreground">0</span>;
+}
 
 export default function WorkspaceRankingTable({ data }: WorkspaceRankingTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>("chat_count");
@@ -31,8 +40,9 @@ export default function WorkspaceRankingTable({ data }: WorkspaceRankingTablePro
   };
 
   const sorted = [...data].sort((a, b) => {
-    const diff = a[sortKey] - b[sortKey];
-    return sortDir === "desc" ? -diff : diff;
+    const va = sortKey === "rating" ? getRating(a) : a[sortKey];
+    const vb = sortKey === "rating" ? getRating(b) : b[sortKey];
+    return sortDir === "desc" ? vb - va : va - vb;
   });
 
   const SortIcon = ({ col }: { col: SortKey }) => {
@@ -78,17 +88,12 @@ export default function WorkspaceRankingTable({ data }: WorkspaceRankingTablePro
                 <td className="py-3 pr-4 text-right font-mono">{ws.user_count}</td>
                 <td className="py-3 pr-4 text-right font-mono">{ws.chat_count}</td>
                 <td className="py-3 pr-4 text-right font-mono">{ws.message_count}</td>
-                <td className="py-3 pr-4 text-right">
-                  <span className="font-mono text-emerald-400">{ws.positive}</span>
-                </td>
-                <td className="py-3 pr-4 text-right">
-                  <span className="font-mono text-rose-400">{ws.negative}</span>
-                </td>
+                <td className="py-3 pr-4 text-right"><RatingCell value={getRating(ws)} /></td>
               </tr>
             ))}
             {sorted.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-10 text-center text-muted-foreground">No workspace data.</td>
+                <td colSpan={6} className="py-10 text-center text-muted-foreground">No workspace data.</td>
               </tr>
             )}
           </tbody>

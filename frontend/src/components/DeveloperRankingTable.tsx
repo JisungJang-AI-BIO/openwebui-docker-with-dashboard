@@ -6,7 +6,7 @@ interface DeveloperRankingTableProps {
   data: DeveloperRanking[];
 }
 
-type SortKey = "workspace_count" | "total_users" | "total_chats" | "total_messages" | "total_positive" | "total_negative";
+type SortKey = "workspace_count" | "total_users" | "total_chats" | "total_messages" | "rating";
 type SortDir = "asc" | "desc";
 
 const COLUMNS: { key: SortKey; label: string }[] = [
@@ -14,9 +14,18 @@ const COLUMNS: { key: SortKey; label: string }[] = [
   { key: "total_users", label: "Users" },
   { key: "total_chats", label: "Chats" },
   { key: "total_messages", label: "Messages" },
-  { key: "total_positive", label: "\ud83d\udc4d" },
-  { key: "total_negative", label: "\ud83d\udc4e" },
+  { key: "rating", label: "Rating" },
 ];
+
+function getRating(row: DeveloperRanking) {
+  return row.total_positive - row.total_negative;
+}
+
+function RatingCell({ value }: { value: number }) {
+  if (value > 0) return <span className="font-mono text-emerald-400">+{value}</span>;
+  if (value < 0) return <span className="font-mono text-rose-400">{value}</span>;
+  return <span className="font-mono text-muted-foreground">0</span>;
+}
 
 export default function DeveloperRankingTable({ data }: DeveloperRankingTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>("total_chats");
@@ -33,8 +42,9 @@ export default function DeveloperRankingTable({ data }: DeveloperRankingTablePro
   };
 
   const sorted = [...data].sort((a, b) => {
-    const diff = a[sortKey] - b[sortKey];
-    return sortDir === "desc" ? -diff : diff;
+    const va = sortKey === "rating" ? getRating(a) : a[sortKey];
+    const vb = sortKey === "rating" ? getRating(b) : b[sortKey];
+    return sortDir === "desc" ? vb - va : va - vb;
   });
 
   const SortIcon = ({ col }: { col: SortKey }) => {
@@ -58,7 +68,7 @@ export default function DeveloperRankingTable({ data }: DeveloperRankingTablePro
             <div className="absolute left-6 top-0 z-20 w-72 rounded-lg border border-border bg-popover p-3 text-sm text-popover-foreground shadow-lg">
               Ranks users who have created one or more workspaces.
               Each developer's score is the sum of all metrics
-              (users, chats, messages, feedback) across their
+              (users, chats, messages, rating) across their
               created workspaces. Base models are excluded.
             </div>
           )}
@@ -96,17 +106,12 @@ export default function DeveloperRankingTable({ data }: DeveloperRankingTablePro
                 <td className="py-3 pr-4 text-right font-mono">{dev.total_users}</td>
                 <td className="py-3 pr-4 text-right font-mono">{dev.total_chats}</td>
                 <td className="py-3 pr-4 text-right font-mono">{dev.total_messages}</td>
-                <td className="py-3 pr-4 text-right">
-                  <span className="font-mono text-emerald-400">{dev.total_positive}</span>
-                </td>
-                <td className="py-3 pr-4 text-right">
-                  <span className="font-mono text-rose-400">{dev.total_negative}</span>
-                </td>
+                <td className="py-3 pr-4 text-right"><RatingCell value={getRating(dev)} /></td>
               </tr>
             ))}
             {sorted.length === 0 && (
               <tr>
-                <td colSpan={8} className="py-10 text-center text-muted-foreground">No developer data. Developers must create at least one workspace.</td>
+                <td colSpan={7} className="py-10 text-center text-muted-foreground">No developer data. Developers must create at least one workspace.</td>
               </tr>
             )}
           </tbody>

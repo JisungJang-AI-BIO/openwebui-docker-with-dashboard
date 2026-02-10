@@ -6,19 +6,21 @@ interface FeedbackSummaryProps {
 
 export default function FeedbackSummary({ data }: FeedbackSummaryProps) {
   if (!data) return null;
+  const net = data.positive - data.negative;
 
   return (
     <div className="rounded-xl border border-border bg-card p-6">
       <h3 className="mb-4 text-lg font-semibold">Feedback</h3>
-      <div className="mb-6 flex gap-6">
+      <div className="mb-6 flex items-center gap-4">
         <div className="flex items-center gap-2">
-          <span className="text-xl">{"\ud83d\udc4d"}</span>
-          <span className="text-2xl font-bold">{data.positive}</span>
+          <span className="text-sm text-muted-foreground">Overall Rating:</span>
+          <span className={`text-2xl font-bold ${net > 0 ? "text-emerald-400" : net < 0 ? "text-rose-400" : "text-muted-foreground"}`}>
+            {net > 0 ? `+${net}` : net}
+          </span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xl">{"\ud83d\udc4e"}</span>
-          <span className="text-2xl font-bold">{data.negative}</span>
-        </div>
+        <span className="text-sm text-muted-foreground">
+          ({data.positive} {"\ud83d\udc4d"} / {data.negative} {"\ud83d\udc4e"})
+        </span>
       </div>
       {data.recent.length > 0 && (
         <div>
