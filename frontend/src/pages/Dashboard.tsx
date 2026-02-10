@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { MessageSquare, Bot, Hash, Star } from "lucide-react";
 import StatCard from "@/components/StatCard";
 import DailyChart from "@/components/DailyChart";
-import ModelBarChart from "@/components/ModelBarChart";
 import WorkspaceRankingTable from "@/components/WorkspaceRankingTable";
 import DeveloperRankingTable from "@/components/DeveloperRankingTable";
 import GroupRankingTable from "@/components/GroupRankingTable";
@@ -15,12 +14,8 @@ import {
   type FeedbackSummary as FeedbackSummaryType,
 } from "@/lib/api";
 
-function todayKST(): string {
-  return new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
-}
-
-function daysAgoKST(days: number): string {
-  return new Date(Date.now() + 9 * 3600_000 - days * 86400_000).toISOString().slice(0, 10);
+function kstDate(offsetDays: number): string {
+  return new Date(Date.now() + 9 * 3600_000 + offsetDays * 86400_000).toISOString().slice(0, 10);
 }
 
 export default function Dashboard() {
@@ -30,8 +25,8 @@ export default function Dashboard() {
   const [developers, setDevelopers] = useState<DeveloperRanking[]>([]);
   const [groups, setGroups] = useState<GroupRanking[]>([]);
   const [feedback, setFeedback] = useState<FeedbackSummaryType | null>(null);
-  const [dateFrom, setDateFrom] = useState(daysAgoKST(29));
-  const [dateTo, setDateTo] = useState(todayKST());
+  const [dateFrom, setDateFrom] = useState(kstDate(-7));
+  const [dateTo, setDateTo] = useState(kstDate(-1));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -69,7 +64,6 @@ export default function Dashboard() {
       </div>
       <DailyChart data={daily} dateFrom={dateFrom} dateTo={dateTo} onDateChange={handleDateChange} />
       <WorkspaceRankingTable data={workspaces} />
-      <ModelBarChart data={workspaces} />
       <DeveloperRankingTable data={developers} />
       <GroupRankingTable data={groups} />
       <FeedbackSummary data={feedback} />

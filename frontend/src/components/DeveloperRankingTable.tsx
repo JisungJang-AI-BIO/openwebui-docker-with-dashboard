@@ -14,8 +14,8 @@ const COLUMNS: { key: SortKey; label: string }[] = [
   { key: "total_users", label: "Users" },
   { key: "total_chats", label: "Chats" },
   { key: "total_messages", label: "Messages" },
-  { key: "total_positive", label: "Positive" },
-  { key: "total_negative", label: "Negative" },
+  { key: "total_positive", label: "\ud83d\udc4d" },
+  { key: "total_negative", label: "\ud83d\udc4e" },
 ];
 
 export default function DeveloperRankingTable({ data }: DeveloperRankingTableProps) {

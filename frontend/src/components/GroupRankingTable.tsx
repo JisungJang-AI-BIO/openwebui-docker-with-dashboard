@@ -15,8 +15,8 @@ const COLUMNS: { key: SortKey; label: string }[] = [
   { key: "messages_per_member", label: "Msgs/Member" },
   { key: "total_chats", label: "Total Chats" },
   { key: "total_messages", label: "Total Msgs" },
-  { key: "total_positive", label: "Positive" },
-  { key: "total_negative", label: "Negative" },
+  { key: "total_positive", label: "\ud83d\udc4d" },
+  { key: "total_negative", label: "\ud83d\udc4e" },
 ];
 
 export default function GroupRankingTable({ data }: GroupRankingTableProps) {

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
 import { type DailyStat } from "@/lib/api";
 
@@ -47,7 +47,7 @@ export default function DailyChart({ data, dateFrom, dateTo, onDateChange }: Dai
         <p className="py-10 text-center text-muted-foreground">No data for this period.</p>
       ) : (
         <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={data}>
+          <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
             <YAxis stroke="hsl(var(--muted-foreground))" />
@@ -59,10 +59,10 @@ export default function DailyChart({ data, dateFrom, dateTo, onDateChange }: Dai
               }}
             />
             <Legend />
-            <Bar dataKey="user_count" name="Users" fill="#10b981" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="chat_count" name="Chats" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="message_count" name="Messages" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-          </BarChart>
+            <Line type="monotone" dataKey="user_count" name="Users" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+            <Line type="monotone" dataKey="chat_count" name="Chats" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+            <Line type="monotone" dataKey="message_count" name="Messages" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+          </LineChart>
         </ResponsiveContainer>
       )}
     </div>

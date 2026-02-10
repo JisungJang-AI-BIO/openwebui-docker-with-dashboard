@@ -13,8 +13,8 @@ const COLUMNS: { key: SortKey; label: string }[] = [
   { key: "user_count", label: "Users" },
   { key: "chat_count", label: "Chats" },
   { key: "message_count", label: "Messages" },
-  { key: "positive", label: "Positive" },
-  { key: "negative", label: "Negative" },
+  { key: "positive", label: "\ud83d\udc4d" },
+  { key: "negative", label: "\ud83d\udc4e" },
 ];
 
 export default function WorkspaceRankingTable({ data }: WorkspaceRankingTableProps) {
