@@ -2,14 +2,13 @@ import { useEffect, useState } from "react";
 import { MessageSquare, Bot, Hash, Star } from "lucide-react";
 import StatCard from "@/components/StatCard";
 import DailyChart from "@/components/DailyChart";
-import ModelPieChart from "@/components/ModelPieChart";
 import ModelBarChart from "@/components/ModelBarChart";
-import RecentChats from "@/components/RecentChats";
+import WorkspaceRankingTable from "@/components/WorkspaceRankingTable";
 import FeedbackSummary from "@/components/FeedbackSummary";
 import {
-  fetchOverview, fetchDailyStats, fetchModelStats, fetchRecentChats, fetchFeedbackSummary,
-  type OverviewStats, type DailyStat, type ModelStat,
-  type RecentChat, type FeedbackSummary as FeedbackSummaryType,
+  fetchOverview, fetchDailyStats, fetchWorkspaceRanking, fetchFeedbackSummary,
+  type OverviewStats, type DailyStat,
+  type WorkspaceRanking, type FeedbackSummary as FeedbackSummaryType,
 } from "@/lib/api";
 
 function todayKST(): string {
@@ -23,8 +22,7 @@ function daysAgoKST(days: number): string {
 export default function Dashboard() {
   const [overview, setOverview] = useState<OverviewStats | null>(null);
   const [daily, setDaily] = useState<DailyStat[]>([]);
-  const [models, setModels] = useState<ModelStat[]>([]);
-  const [chats, setChats] = useState<RecentChat[]>([]);
+  const [workspaces, setWorkspaces] = useState<WorkspaceRanking[]>([]);
   const [feedback, setFeedback] = useState<FeedbackSummaryType | null>(null);
   const [dateFrom, setDateFrom] = useState(daysAgoKST(29));
   const [dateTo, setDateTo] = useState(todayKST());
@@ -34,8 +32,7 @@ export default function Dashboard() {
     Promise.all([
       fetchOverview().then(setOverview),
       fetchDailyStats(dateFrom, dateTo).then(setDaily),
-      fetchModelStats().then(setModels),
-      fetchRecentChats().then(setChats),
+      fetchWorkspaceRanking().then(setWorkspaces),
       fetchFeedbackSummary().then(setFeedback),
     ]).finally(() => setLoading(false));
   }, []);
@@ -59,15 +56,12 @@ export default function Dashboard() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard title="Total Chats" value={overview?.total_chats ?? 0} icon={MessageSquare} />
         <StatCard title="Total Messages" value={overview?.total_messages ?? 0} icon={Hash} />
-        <StatCard title="Models Used" value={overview?.total_models ?? 0} icon={Bot} />
+        <StatCard title="Workspaces" value={overview?.total_models ?? 0} icon={Bot} />
         <StatCard title="Feedbacks" value={overview?.total_feedbacks ?? 0} icon={Star} />
       </div>
       <DailyChart data={daily} dateFrom={dateFrom} dateTo={dateTo} onDateChange={handleDateChange} />
-      <div className="grid gap-6 lg:grid-cols-2">
-        <ModelPieChart data={models} />
-        <ModelBarChart data={models} />
-      </div>
-      <RecentChats data={chats} />
+      <WorkspaceRankingTable data={workspaces} />
+      <ModelBarChart data={workspaces} />
       <FeedbackSummary data={feedback} />
     </div>
   );

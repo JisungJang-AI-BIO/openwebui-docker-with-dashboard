@@ -8,7 +8,7 @@ from datetime import datetime, date, timedelta, timezone, time
 
 load_dotenv()
 
-app = FastAPI(title="Open WebUI Dashboard API")
+app = FastAPI(title="SbioChat Dashboard API")
 
 KST = timezone(timedelta(hours=9))
 
@@ -116,66 +116,49 @@ def get_daily_stats(
     ]
 
 
-@app.get("/api/stats/models")
-def get_model_stats(db: Session = Depends(get_db)):
-    # Model usage count
-    usage_rows = db.execute(text("""
-        SELECT m.value as model, count(*) as chat_count
-        FROM chat, json_array_elements_text(chat->'models') AS m(value)
-        GROUP BY m.value
-        ORDER BY chat_count DESC
-    """)).mappings().all()
-
-    # Model average response length
-    avg_rows = db.execute(text("""
-        SELECT
-            m_model.value as model,
-            round(avg(length(msg.value->>'content'))) as avg_response_length
-        FROM chat,
-            json_array_elements_text(chat->'models') AS m_model(value),
-            json_array_elements(chat->'messages') AS msg(value)
-        WHERE msg.value->>'role' = 'assistant'
-        GROUP BY m_model.value
-    """)).mappings().all()
-
-    avg_map = {row["model"]: row["avg_response_length"] for row in avg_rows}
-
-    return [
-        {
-            "model": row["model"],
-            "chat_count": row["chat_count"],
-            "avg_response_length": int(avg_map.get(row["model"], 0) or 0),
-        }
-        for row in usage_rows
-    ]
-
-
-@app.get("/api/chats/recent")
-def get_recent_chats(
-    limit: int = Query(default=20, le=100),
-    db: Session = Depends(get_db),
-):
+@app.get("/api/stats/workspace-ranking")
+def get_workspace_ranking(db: Session = Depends(get_db)):
     rows = db.execute(text("""
+        WITH workspace_chats AS (
+            SELECT
+                m.value as workspace,
+                count(*) as chat_count,
+                sum(json_array_length(c.chat->'messages')) as message_count
+            FROM chat c, json_array_elements_text(c.chat->'models') AS m(value)
+            GROUP BY m.value
+        ),
+        workspace_feedback AS (
+            SELECT
+                f.data->>'model_id' as workspace,
+                count(*) FILTER (WHERE (f.data->>'rating')::int > 0) as positive,
+                count(*) FILTER (WHERE (f.data->>'rating')::int < 0) as negative
+            FROM feedback f
+            GROUP BY f.data->>'model_id'
+        ),
+        workspace_names AS (
+            SELECT id, name FROM model
+        )
         SELECT
-            id,
-            title,
-            chat->'models' as models,
-            json_array_length(chat->'messages') as message_count,
-            to_timestamp(created_at) AT TIME ZONE 'Asia/Seoul' as created_at,
-            to_timestamp(updated_at) AT TIME ZONE 'Asia/Seoul' as updated_at
-        FROM chat
-        ORDER BY updated_at DESC
-        LIMIT :limit
-    """), {"limit": limit}).mappings().all()
+            wc.workspace as id,
+            coalesce(wn.name, wc.workspace) as name,
+            wc.chat_count,
+            wc.message_count,
+            coalesce(wf.positive, 0) as positive,
+            coalesce(wf.negative, 0) as negative
+        FROM workspace_chats wc
+        LEFT JOIN workspace_feedback wf ON wc.workspace = wf.workspace
+        LEFT JOIN workspace_names wn ON wc.workspace = wn.id
+        ORDER BY wc.chat_count DESC
+    """)).mappings().all()
 
     return [
         {
             "id": row["id"],
-            "title": row["title"],
-            "models": row["models"],
-            "message_count": row["message_count"],
-            "created_at": str(row["created_at"]),
-            "updated_at": str(row["updated_at"]),
+            "name": row["name"],
+            "chat_count": row["chat_count"],
+            "message_count": row["message_count"] or 0,
+            "positive": row["positive"],
+            "negative": row["negative"],
         }
         for row in rows
     ]

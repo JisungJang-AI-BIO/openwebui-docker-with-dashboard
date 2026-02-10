@@ -17,19 +17,13 @@ export interface DailyStat {
   message_count: number;
 }
 
-export interface ModelStat {
-  model: string;
-  chat_count: number;
-  avg_response_length: number;
-}
-
-export interface RecentChat {
+export interface WorkspaceRanking {
   id: string;
-  title: string;
-  models: string[];
+  name: string;
+  chat_count: number;
   message_count: number;
-  created_at: string;
-  updated_at: string;
+  positive: number;
+  negative: number;
 }
 
 export interface FeedbackItem {
@@ -58,11 +52,8 @@ export const fetchDailyStats = (from?: string, to?: string) => {
     .then((r) => r.data);
 };
 
-export const fetchModelStats = () =>
-  api.get<ModelStat[]>("/api/stats/models").then((r) => r.data);
-
-export const fetchRecentChats = (limit = 20) =>
-  api.get<RecentChat[]>(`/api/chats/recent?limit=${limit}`).then((r) => r.data);
+export const fetchWorkspaceRanking = () =>
+  api.get<WorkspaceRanking[]>("/api/stats/workspace-ranking").then((r) => r.data);
 
 export const fetchFeedbackSummary = () =>
   api.get<FeedbackSummary>("/api/feedbacks/summary").then((r) => r.data);

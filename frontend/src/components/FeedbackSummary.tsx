@@ -13,12 +13,12 @@ export default function FeedbackSummary({ data }: FeedbackSummaryProps) {
       <h3 className="mb-4 text-lg font-semibold">Feedback</h3>
       <div className="mb-6 flex gap-6">
         <div className="flex items-center gap-2">
-          <ThumbsUp className="h-5 w-5 text-green-500" />
+          <ThumbsUp className="h-5 w-5 text-emerald-400" />
           <span className="text-2xl font-bold">{data.positive}</span>
           <span className="text-sm text-muted-foreground">Positive</span>
         </div>
         <div className="flex items-center gap-2">
-          <ThumbsDown className="h-5 w-5 text-red-500" />
+          <ThumbsDown className="h-5 w-5 text-rose-400" />
           <span className="text-2xl font-bold">{data.negative}</span>
           <span className="text-sm text-muted-foreground">Negative</span>
         </div>
@@ -30,9 +30,9 @@ export default function FeedbackSummary({ data }: FeedbackSummaryProps) {
             {data.recent.map((fb) => (
               <div key={fb.id} className="flex items-start gap-3 rounded-lg bg-muted/50 p-3">
                 {fb.rating > 0 ? (
-                  <ThumbsUp className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
+                  <ThumbsUp className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
                 ) : (
-                  <ThumbsDown className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+                  <ThumbsDown className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" />
                 )}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
