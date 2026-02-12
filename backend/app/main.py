@@ -439,8 +439,8 @@ def update_package_status(
 ):
     if current_user not in ADMIN_USERS:
         raise HTTPException(status_code=403, detail="Only admins can change package status")
-    if body.status not in ("pending", "installed", "rejected"):
-        raise HTTPException(status_code=400, detail="Status must be pending, installed, or rejected")
+    if body.status not in ("pending", "installed", "rejected", "uninstalled"):
+        raise HTTPException(status_code=400, detail="Status must be pending, installed, rejected, or uninstalled")
     row = db.execute(
         text("SELECT id FROM python_packages WHERE id = :id"),
         {"id": package_id},

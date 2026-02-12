@@ -48,6 +48,8 @@ services:
       - FRONTEND_PORT=${FRONTEND_PORT_INTERNAL}
     depends_on:
       - backend
+    volumes:
+      - ./frontend/src:/app/src
 
 volumes:
   openwebui_pgdata:

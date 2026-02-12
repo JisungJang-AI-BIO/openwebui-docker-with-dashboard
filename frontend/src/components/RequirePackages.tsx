@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Download, X, Info, Plus, Check, Ban, Clock, Loader2 } from "lucide-react";
+import { Download, X, Info, Plus, Check, Ban, Clock, Loader2, Undo2, ExternalLink } from "lucide-react";
 import { fetchPackages, addPackage, deletePackage, updatePackageStatus, type PythonPackage } from "@/lib/api";
 
 interface RequirePackagesProps {
@@ -7,9 +7,10 @@ interface RequirePackagesProps {
 }
 
 const STATUS_CONFIG = {
-  pending:   { icon: Clock, color: "text-amber-400",   bg: "bg-amber-400/10", label: "Pending" },
-  installed: { icon: Check, color: "text-emerald-400",  bg: "bg-emerald-400/10", label: "Installed" },
-  rejected:  { icon: Ban,   color: "text-rose-400",     bg: "bg-rose-400/10", label: "Rejected" },
+  pending:     { icon: Clock,  color: "text-amber-400",   bg: "bg-amber-400/10",   label: "Pending" },
+  installed:   { icon: Check,  color: "text-emerald-400", bg: "bg-emerald-400/10", label: "Installed" },
+  rejected:    { icon: Ban,    color: "text-rose-400",    bg: "bg-rose-400/10",    label: "Rejected" },
+  uninstalled: { icon: Undo2,  color: "text-zinc-400",    bg: "bg-zinc-400/10",    label: "Uninstalled" },
 } as const;
 
 // Hardcoded for now; in production this comes from /api/auth/me
@@ -105,17 +106,25 @@ export default function RequirePackages({ currentUser }: RequirePackagesProps) {
             </span>
           )}
           <div className="relative">
-            <Info
-              className="h-4 w-4 cursor-help text-muted-foreground hover:text-foreground"
-              onMouseEnter={() => setShowTooltip(true)}
-              onMouseLeave={() => setShowTooltip(false)}
-            />
+            <button type="button" onClick={() => setShowTooltip((v) => !v)}>
+              <Info className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+            </button>
             {showTooltip && (
-              <div className="absolute left-6 top-0 z-20 w-80 rounded-lg border border-border bg-popover p-3 text-sm text-popover-foreground shadow-lg">
-                Request Python packages to be installed on the SbioChat server environment.
-                Submitted requests will be reviewed and installed by the admin.
-                Only @samsung.com authenticated users can submit or remove requests.
-              </div>
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setShowTooltip(false)} />
+                <div className="absolute left-6 top-0 z-20 w-80 rounded-lg border border-border bg-popover p-3 text-sm text-popover-foreground shadow-lg">
+                  <p>Request Python packages to use 'python packages' for your workspace on SbioChat.</p>
+                  <a
+                    href="https://docs.openwebui.com/features/plugin/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                  >
+                    Ref: Open WebUI Plugin Docs
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -186,6 +195,24 @@ export default function RequirePackages({ currentUser }: RequirePackagesProps) {
                           <Ban className="h-3.5 w-3.5" />
                         </button>
                       </>
+                    )}
+                    {isAdmin && pkg.status === "installed" && (
+                      <button
+                        onClick={() => handleStatusChange(pkg.id, "uninstalled")}
+                        className="rounded p-1 text-muted-foreground hover:bg-zinc-400/20 hover:text-zinc-300"
+                        title="Mark as uninstalled"
+                      >
+                        <Undo2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    {isAdmin && (pkg.status === "rejected" || pkg.status === "uninstalled") && (
+                      <button
+                        onClick={() => handleStatusChange(pkg.id, "pending")}
+                        className="rounded p-1 text-muted-foreground hover:bg-amber-400/20 hover:text-amber-400"
+                        title="Revert to pending"
+                      >
+                        <Clock className="h-3.5 w-3.5" />
+                      </button>
                     )}
                     {/* Delete: owner or admin */}
                     {(pkg.added_by === currentUser || isAdmin) && (

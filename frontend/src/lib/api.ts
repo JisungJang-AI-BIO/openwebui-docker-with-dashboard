@@ -57,7 +57,7 @@ export interface PythonPackage {
   package_name: string;
   added_by: string;
   added_at: string;
-  status: "pending" | "installed" | "rejected";
+  status: "pending" | "installed" | "rejected" | "uninstalled";
   status_note: string | null;
 }
 
