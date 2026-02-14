@@ -1,5 +1,5 @@
 #!/bin/bash
-# Open WebUI PostgreSQL 백업 스크립트
+# Open WebUI PostgreSQL backup script
 
 BACKUP_DIR="./backups"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -17,7 +17,7 @@ if [ $? -eq 0 ]; then
     docker exec "$CONTAINER_NAME" rm /tmp/backup.dump
     echo "Backup saved: $BACKUP_DIR/openwebui_backup_${TIMESTAMP}.dump"
 
-    # 7일 이상 된 백업 자동 삭제
+    # Auto-delete backups older than 7 days
     find "$BACKUP_DIR" -name "openwebui_backup_*.dump" -mtime +7 -delete
     echo "Old backups (>7 days) cleaned up."
 else
