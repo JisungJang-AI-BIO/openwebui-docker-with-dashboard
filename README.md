@@ -186,6 +186,12 @@ bash start_openwebui.sh
 # Open WebUI available at http://localhost:30072
 ```
 
+## Caution
+
+- **`docker compose down -v` 사용 금지**: `-v` 플래그는 Docker named volume(`openwebui_pgdata`)을 삭제하여 **모든 DB 데이터가 유실**됩니다. 패키지 요청 내역(`python_packages`), Open WebUI 채팅 기록 등이 모두 사라집니다.
+- 백엔드/프론트엔드 컨테이너를 재빌드(`docker compose up --build -d`)하거나 삭제해도 DB 데이터는 영향받지 않습니다.
+- 컨테이너 중지는 `docker compose down` (without `-v`)을 사용하세요.
+
 ## Documentation
 
 - `docs/postgresql-backup-guide.md` — DB backup/restore guide
