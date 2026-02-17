@@ -1,0 +1,46 @@
+Category,Destination,Port,Protocol,Purpose,Required Phase,Resolved IPs,Verified
+# =====================================================================
+# Docker Hub - Container Image Registry
+# Images: node:20-slim / python:3.11-slim / pgvector/pgvector:pg16
+# Verified: 2026-02-18 by full container rebuild with tcpdump + curl
+# =====================================================================
+Docker Registry,docker.io,443,HTTPS,Docker Hub main domain (redirects to registry-1),Build,"18.235.191.139, 3.229.55.47, 3.231.1.209",YES
+Docker Registry,registry-1.docker.io,443,HTTPS,Docker Hub V2 registry API (manifest + layer pulls),Build,"50.16.155.17, 100.24.190.248, 100.49.158.130, 34.199.170.115, 34.233.73.246, 44.194.7.62, 44.198.81.145, 98.95.137.26 (variable)",YES - curl confirmed 307 redirect
+Docker Registry,auth.docker.io,443,HTTPS,Docker Hub Bearer token authentication,Build,"104.18.43.178, 172.64.144.78 (Cloudflare)",YES - tcpdump + DNS captured
+Docker Registry,*.r2.cloudflarestorage.com,443,HTTPS,"Docker Hub blob storage CDN (actual image layer downloads, redirected from registry-1)",Build,"172.64.66.1 (Cloudflare R2); full subdomain: docker-images-prod.6aa30f8b08e16409b46e0173d6de2f56.r2.cloudflarestorage.com",YES - curl -v confirmed 307 redirect from registry-1
+Docker Registry,index.docker.io,443,HTTPS,Docker Hub index / legacy endpoint (CNAME to registry-1),Build,"Same IPs as registry-1.docker.io (CNAME)",YES - DNS resolved
+Docker Telemetry,http-intake.logs.us5.datadoghq.com,443,HTTPS,Docker Engine telemetry (Datadog),Build (optional),34.149.66.137,YES - tcpdump captured; can be blocked without breaking builds
+# =====================================================================
+# NPM - Node.js Package Registry (Frontend build: npm ci)
+# 293 packages downloaded during verified build
+# =====================================================================
+NPM Registry,registry.npmjs.org,443,HTTPS,NPM package metadata and tarball downloads,Build,"104.16.0.34 ~ 104.16.11.34 (Cloudflare)",YES - tcpdump inside container confirmed as sole DNS query during npm ci
+# =====================================================================
+# PyPI - Python Package Index (Backend build: pip install)
+# 17 packages downloaded during verified build
+# =====================================================================
+PyPI Registry,pypi.org,443,HTTPS,Python package index (metadata/version resolution),Build,"151.101.0.223, 151.101.64.223, 151.101.128.223, 151.101.192.223 (Fastly)",YES - tcpdump inside container confirmed
+PyPI Registry,files.pythonhosted.org,443,HTTPS,Python package file downloads (.whl/.tar.gz),Build,"151.101.0.223, 151.101.64.223, 151.101.128.223, 151.101.192.223 (Fastly)",YES - tcpdump inside container confirmed; pip -v showed all downloads from this domain
+# =====================================================================
+# Debian/Ubuntu APT - Base image OS packages (conditional)
+# Current Dockerfiles do NOT run apt-get; only needed if added later
+# =====================================================================
+APT Repository,deb.debian.org,80/443,HTTP/HTTPS,Debian package repository (base images use Debian Bookworm),Build (conditional),146.75.50.132 (Fastly),"NO - not currently used; Dockerfiles have no apt-get commands"
+APT Repository,security.debian.org,80/443,HTTP/HTTPS,Debian security updates,Build (conditional),"151.101.2.132, 151.101.66.132, 151.101.130.132, 151.101.194.132","NO - not currently used; only if apt-get upgrade added"
+# =====================================================================
+# Fonts / Emojis / Logos / Icons - External CDN dependencies
+# =====================================================================
+Fonts,N/A,N/A,N/A,No external font CDN,N/A,N/A,"VERIFIED - Tailwind uses system font stack (ui-sans-serif, system-ui); no @font-face or Google Fonts in CSS/HTML"
+Emojis,N/A,N/A,N/A,No external emoji CDN,N/A,N/A,VERIFIED - No twemoji/noto-emoji; system native emoji only
+Icons,N/A,N/A,N/A,No external icon CDN,N/A,N/A,"VERIFIED - lucide-react bundled at build time via npm; no runtime CDN fetch"
+Logos,N/A,N/A,N/A,No external logo CDN,N/A,N/A,"VERIFIED - vite.svg and react.svg are local assets in /public/ and /src/assets/"
+# =====================================================================
+# Runtime - External URLs (browser-side only, not server-side)
+# =====================================================================
+Documentation Link,docs.openwebui.com,443,HTTPS,Plugin docs hyperlink in RequirePackages.tsx,Runtime (browser),"185.199.108.153, 185.199.109.153, 185.199.110.153, 185.199.111.153 (GitHub Pages)","YES - grep confirmed; user's browser navigates here, not the server"
+# =====================================================================
+# Internal Services (NOT external firewall rules - reference only)
+# =====================================================================
+Internal,localhost (container network),5432,TCP,PostgreSQL (container-to-container),Runtime,N/A,Docker internal bridge network
+Internal,localhost (container network),8000,TCP,Dashboard Backend FastAPI,Runtime,N/A,Docker internal bridge network
+Internal,localhost (container network),5173,TCP,Dashboard Frontend Vite dev server,Runtime,N/A,Docker internal bridge network
