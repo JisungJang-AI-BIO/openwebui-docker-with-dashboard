@@ -79,18 +79,18 @@ export const fetchDailyStats = (from?: string, to?: string) => {
   if (from) params.set("from", from);
   if (to) params.set("to", to);
   return api
-    .get<DailyStat[]>(`/api/stats/daily?${params.toString()}`)
+    .get<DailyStat[]>(`/api/v1/stats/daily?${params.toString()}`)
     .then((r) => r.data);
 };
 
 export const fetchWorkspaceRanking = (offset = 0, limit = 20) =>
-  api.get<PaginatedResponse<WorkspaceRanking>>(`/api/stats/workspace-ranking?offset=${offset}&limit=${limit}`).then((r) => r.data);
+  api.get<PaginatedResponse<WorkspaceRanking>>(`/api/v1/stats/workspace-ranking?offset=${offset}&limit=${limit}`).then((r) => r.data);
 
 export const fetchDeveloperRanking = (offset = 0, limit = 20) =>
-  api.get<PaginatedResponse<DeveloperRanking>>(`/api/stats/developer-ranking?offset=${offset}&limit=${limit}`).then((r) => r.data);
+  api.get<PaginatedResponse<DeveloperRanking>>(`/api/v1/stats/developer-ranking?offset=${offset}&limit=${limit}`).then((r) => r.data);
 
 export const fetchGroupRanking = (offset = 0, limit = 20) =>
-  api.get<PaginatedResponse<GroupRanking>>(`/api/stats/group-ranking?offset=${offset}&limit=${limit}`).then((r) => r.data);
+  api.get<PaginatedResponse<GroupRanking>>(`/api/v1/stats/group-ranking?offset=${offset}&limit=${limit}`).then((r) => r.data);
 
 export const fetchPackages = () =>
   api.get<PaginatedResponse<PythonPackage>>("/api/v1/packages?limit=200").then((r) => r.data.items);
@@ -99,10 +99,10 @@ export const addPackage = (packageName: string, authUser: string) =>
   api.post<PythonPackage>("/api/v1/packages", { package_name: packageName }, { headers: { "X-Auth-User": authUser } }).then((r) => r.data);
 
 export const deletePackage = (id: number, authUser: string) =>
-  api.delete(`/api/packages/${id}`, { headers: { "X-Auth-User": authUser } }).then((r) => r.data);
+  api.delete(`/api/v1/packages/${id}`, { headers: { "X-Auth-User": authUser } }).then((r) => r.data);
 
 export const updatePackageStatus = (id: number, status: string, authUser: string, note?: string) =>
-  api.patch(`/api/packages/${id}/status`, { status, status_note: note }, { headers: { "X-Auth-User": authUser } }).then((r) => r.data);
+  api.patch(`/api/v1/packages/${id}/status`, { status, status_note: note }, { headers: { "X-Auth-User": authUser } }).then((r) => r.data);
 
 export interface AuthMe {
   user: string;
