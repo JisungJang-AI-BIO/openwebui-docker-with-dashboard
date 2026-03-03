@@ -26,8 +26,9 @@ from pydantic import BaseModel, Field
 # EventEmitter Helper
 # =============================================================================
 class EventEmitter:
-    def __init__(self, event_emitter: Callable[[dict], Any] = None):
+    def __init__(self, event_emitter: Callable[[dict], Any] = None, user: dict = None):
         self.event_emitter = event_emitter
+        self.user = user or {}
 
     async def emit(self, description="Unknown State", status="in_progress", done=False):
         if self.event_emitter:
@@ -45,14 +46,69 @@ class EventEmitter:
         await self.emit(description, "error", True)
 
     async def send_file_link(self, file_path: str, filename: str, mime_type: str = None):
+        """Upload file to OpenWebUI Files API and emit download link.
+        Falls back to base64 data URI if the API is unavailable.
+        """
         if not self.event_emitter or not os.path.exists(file_path):
             return
-        mime_type = mime_type or "image/png"
-        with open(file_path, "rb") as f:
-            file_data = base64.b64encode(f.read()).decode("utf-8")
-        await self.event_emitter(
-            {"type": "message", "data": {"content": f"\n\n📸 **{filename}**\n\n![{filename}](data:{mime_type};base64,{file_data})\n\n[Download {filename}](data:{mime_type};base64,{file_data})\n"}}
-        )
+        if mime_type is None:
+            ext = Path(filename).suffix.lower()
+            mime_map = {
+                ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+                ".gif": "image/gif", ".pdf": "application/pdf", ".html": "text/html",
+            }
+            mime_type = mime_map.get(ext, "image/png")
+
+        is_image = mime_type.startswith("image/")
+        url = await self._upload_to_openwebui(file_path, filename, mime_type)
+
+        if url:
+            if is_image:
+                content = f"\n\n📎 **{filename}**\n\n![{filename}]({url})\n\n[Download {filename}]({url})\n"
+            else:
+                content = f"\n\n📎 **{filename}**\n\n[Download {filename}]({url})\n"
+        else:
+            with open(file_path, "rb") as f:
+                b64 = base64.b64encode(f.read()).decode("utf-8")
+            data_uri = f"data:{mime_type};base64,{b64}"
+            if is_image:
+                content = f"\n\n📎 **{filename}**\n\n![{filename}]({data_uri})\n\n[Download {filename}]({data_uri})\n"
+            else:
+                content = f"\n\n📎 **{filename}**\n\n[Download {filename}]({data_uri})\n"
+
+        await self.event_emitter({"type": "message", "data": {"content": content}})
+
+    async def _upload_to_openwebui(self, file_path: str, filename: str, mime_type: str) -> Optional[str]:
+        """Upload file via OpenWebUI's internal Files API. Returns download URL or None."""
+        try:
+            import httpx
+            import jwt
+
+            user_id = self.user.get("id", "")
+            secret = os.environ.get("WEBUI_SECRET_KEY", "")
+            if not user_id or not secret:
+                return None
+
+            token = jwt.encode({"id": user_id}, secret, algorithm="HS256")
+            if isinstance(token, bytes):
+                token = token.decode("utf-8")
+
+            port = os.environ.get("PORT", "8080")
+            with open(file_path, "rb") as f:
+                resp = httpx.post(
+                    f"http://localhost:{port}/api/v1/files/",
+                    files={"file": (filename, f, mime_type)},
+                    headers={"Authorization": f"Bearer {token}"},
+                    timeout=30.0,
+                )
+
+            if resp.status_code in (200, 201):
+                file_id = resp.json().get("id")
+                if file_id:
+                    return f"/api/v1/files/{file_id}/content"
+            return None
+        except Exception:
+            return None
 
 
 # =============================================================================
@@ -97,7 +153,7 @@ class Tools:
         :param wait_for: Wait strategy - "networkidle", "load", "domcontentloaded"
         :return: Screenshot with download link
         """
-        emitter = EventEmitter(__event_emitter__)
+        emitter = EventEmitter(__event_emitter__, __user__)
         await emitter.progress(f"Taking screenshot of {url}...")
 
         try:
@@ -161,7 +217,7 @@ class Tools:
         :param wait_for: Wait strategy - "networkidle", "load", "domcontentloaded"
         :return: Extracted information
         """
-        emitter = EventEmitter(__event_emitter__)
+        emitter = EventEmitter(__event_emitter__, __user__)
         await emitter.progress(f"Inspecting {url}...")
 
         try:
@@ -272,7 +328,7 @@ class Tools:
         :param url: Optional URL to navigate to before running script
         :return: Test results
         """
-        emitter = EventEmitter(__event_emitter__)
+        emitter = EventEmitter(__event_emitter__, __user__)
         await emitter.progress("Running test script...")
 
         try:
