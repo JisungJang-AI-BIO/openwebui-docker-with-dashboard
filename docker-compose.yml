@@ -1,7 +1,11 @@
 services:
-  # ─── Open WebUI (CUDA + SSO) ────────────────────────────────
+  # ─── Open WebUI (CUDA + Skills) ─────────────────────────────
   open-webui:
-    image: ghcr.io/open-webui/open-webui:cuda
+    build:
+      context: ../OpenWebUI-Skills
+      args:
+        BASE_IMAGE: ghcr.io/open-webui/open-webui:cuda
+    image: openwebui-skills:cuda
     container_name: open-webui
     restart: unless-stopped
     ports:
