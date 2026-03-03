@@ -180,7 +180,8 @@ openwebui-docker-with-dashboard/
 ├── scripts/
 │   ├── setup.sh                # Automated deployment script
 │   ├── backup_db.sh            # PostgreSQL backup with 7-day retention
-│   └── clone-db-to-staging.sh  # Clone production DB → staging
+│   ├── clone-db-to-staging.sh  # Clone production DB → staging
+│   └── import-skills-tools.sh  # Auto-import Skills & Tools via API
 └── docs/
     ├── postgresql-backup-guide.md
     ├── sso-integration-guide.md
@@ -328,12 +329,24 @@ All rollback targets the current deployment (port 10085). The previous conda-bas
 
 ## Post-Deployment: Register Skills & Tools
 
-After Open WebUI is running, register the Skills and Tools from the OpenWebUI-Skills repo via the Open WebUI admin UI:
+### Automated Import (Recommended)
+
+```bash
+# Get your API key from: Open WebUI > Settings > Account > API Keys
+bash scripts/import-skills-tools.sh http://127.0.0.1:10085 <your-api-key>
+```
+
+The script reads all `openwebui-skills/skills/*.md` and `openwebui-skills/tools/*.py` files, parses their metadata, and registers them via the Open WebUI API. Existing entries are skipped.
+
+### Manual Import
 
 1. **Import Skills** — Workspace > Skills > Import → upload `.md` files from `openwebui-skills/skills/`
 2. **Register Tools** — Workspace > Tools > Create → paste contents of each `openwebui-skills/tools/*.py` file
-3. **Configure Valves** — click the gear icon on each Tool and set paths (e.g., `SCRIPTS_DIR: /app/OpenWebUI-Skills/vendor/docx`)
-4. **Attach to Models** — Workspace > Models > Edit → check desired Skills & Tools
+
+### After Import
+
+1. **Configure Valves** — click the gear icon on each Tool and set paths (e.g., `SCRIPTS_DIR: /app/OpenWebUI-Skills/vendor/docx`)
+2. **Attach to Models** — Workspace > Models > Edit → check desired Skills & Tools
 
 See [openwebui-skills/INSTALLATION_GUIDE.md](openwebui-skills/INSTALLATION_GUIDE.md) for detailed registration steps.
 
