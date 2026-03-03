@@ -160,7 +160,18 @@ pip install --no-cache-dir -r requirements.txt
 
 ## Registering Skills & Tools in OpenWebUI (v0.8+)
 
-After dependencies are installed, register Skills and Tools via the web UI.
+### Automated Import (Recommended)
+
+```bash
+bash scripts/import-skills-tools.sh                     # production
+bash scripts/import-skills-tools.sh open-webui-staging  # staging
+```
+
+No API key needed — the script runs inside the container and inserts directly into the database. It is also called automatically by `setup.sh` and `clone-db-to-staging.sh`. Requires at least one admin account to exist.
+
+### Manual Import (Alternative)
+
+If you prefer to register manually via the web UI:
 
 ### Skills (Markdown → Workspace > Skills)
 

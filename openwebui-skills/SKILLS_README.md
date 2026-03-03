@@ -141,33 +141,13 @@ Each `skills/*.md` file includes YAML frontmatter (`name`, `description`) and ca
 2. Click **Import** and select `.md` files from `skills/` directory
 3. Toggle each skill **Active**
 
-Or use the API to bulk-import:
+Or use the automated import script (no API key needed):
 ```bash
-for f in skills/*.md; do
-  curl -X POST http://localhost:8080/api/v1/skills/create \
-    -H "Authorization: Bearer $WEBUI_API_KEY" \
-    -H "Content-Type: application/json" \
-    -d "$(python3 -c "
-import json, sys
-text = open('$f').read()
-parts = text.split('---')
-meta = {}
-if len(parts) >= 3:
-    for line in parts[1].strip().splitlines():
-        k, v = line.split(':', 1)
-        meta[k.strip()] = v.strip()
-    content = '---'.join(parts[2:]).strip()
-else:
-    content = text
-print(json.dumps({
-    'id': meta.get('name', '$f'),
-    'name': meta.get('name', '$f'),
-    'description': meta.get('description', ''),
-    'content': content
-}))
-")"
-done
+bash scripts/import-skills-tools.sh                     # production
+bash scripts/import-skills-tools.sh open-webui-staging  # staging
 ```
+
+This runs inside the container and inserts directly into the database. It is also called automatically by `setup.sh` and `clone-db-to-staging.sh`.
 
 ### Step 2: Register Tools (Python)
 
