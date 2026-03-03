@@ -101,7 +101,7 @@ done
 
 echo ""
 echo "[SPARSE] Setting checkout paths (${#SPARSE_PATHS[@]} entries) ..."
-git sparse-checkout set "${SPARSE_PATHS[@]}" 2>&1
+git sparse-checkout set --no-cone "${SPARSE_PATHS[@]}" 2>&1
 
 # ---------------------------------------------------------------------------
 # Copy to vendor/
