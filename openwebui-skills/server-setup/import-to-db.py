@@ -297,6 +297,7 @@ def main():
             INSERT INTO skill (id, user_id, name, description, content, meta, is_active, created_at, updated_at)
             VALUES (%s, %s, %s, %s, %s, %s, true, %s, %s)
             ON CONFLICT (id) DO UPDATE SET
+                user_id = EXCLUDED.user_id,
                 name = EXCLUDED.name,
                 description = EXCLUDED.description,
                 content = EXCLUDED.content,
@@ -342,6 +343,7 @@ def main():
             INSERT INTO tool (id, user_id, name, content, specs, meta, valves, created_at, updated_at)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (id) DO UPDATE SET
+                user_id = EXCLUDED.user_id,
                 name = EXCLUDED.name,
                 content = EXCLUDED.content,
                 specs = EXCLUDED.specs,
