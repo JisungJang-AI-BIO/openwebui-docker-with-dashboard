@@ -459,6 +459,7 @@ class Tools:
         self,
         user_password: str = "",
         owner_password: str = "",
+        output_filename: str = "",
         __files__: list = None,
         __user__: dict = None,
         __event_emitter__: Callable[[dict], Any] = None,
@@ -468,6 +469,7 @@ class Tools:
 
         :param user_password: Password required to open the PDF. Leave empty for no open password.
         :param owner_password: Owner password for full permissions. Defaults to user_password if empty.
+        :param output_filename: Custom output filename (default: {original}_protected.pdf)
         :return: Protected PDF download link
         """
         emitter = EventEmitter(__event_emitter__, __user__)
@@ -496,7 +498,8 @@ class Tools:
             writer.encrypt(user_password=user_password, owner_password=owner)
 
             temp_dir = self._ensure_temp_dir()
-            output_filename = f"{Path(file_path).stem}_protected.pdf"
+            if not output_filename:
+                output_filename = f"{Path(file_path).stem}_protected.pdf"
             output_path = os.path.join(temp_dir, output_filename)
             with open(output_path, "wb") as f:
                 writer.write(f)
@@ -513,6 +516,7 @@ class Tools:
         self,
         text: str = "CONFIDENTIAL",
         opacity: float = 0.15,
+        output_filename: str = "",
         __files__: list = None,
         __user__: dict = None,
         __event_emitter__: Callable[[dict], Any] = None,
@@ -522,6 +526,7 @@ class Tools:
 
         :param text: Watermark text (e.g. "CONFIDENTIAL", "DRAFT")
         :param opacity: Watermark opacity from 0.0 (invisible) to 1.0 (fully opaque). Default 0.15.
+        :param output_filename: Custom output filename (default: {original}_watermarked.pdf)
         :return: Watermarked PDF download link
         """
         emitter = EventEmitter(__event_emitter__, __user__)
@@ -566,7 +571,8 @@ class Tools:
                 writer.add_page(page)
 
             temp_dir = self._ensure_temp_dir()
-            output_filename = f"{Path(file_path).stem}_watermarked.pdf"
+            if not output_filename:
+                output_filename = f"{Path(file_path).stem}_watermarked.pdf"
             output_path = os.path.join(temp_dir, output_filename)
             with open(output_path, "wb") as f:
                 writer.write(f)

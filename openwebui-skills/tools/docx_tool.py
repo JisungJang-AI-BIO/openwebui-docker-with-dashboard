@@ -417,6 +417,7 @@ Packer.toBuffer(doc).then(buffer => {{
         self,
         operation: str,
         parameters: str = "",
+        output_filename: str = "",
         __files__: list = None,
         __user__: dict = None,
         __event_emitter__: Callable[[dict], Any] = None,
@@ -438,6 +439,7 @@ Packer.toBuffer(doc).then(buffer => {{
 
         :param operation: Operation name
         :param parameters: Operation-specific parameters
+        :param output_filename: Custom output filename (default: {original}_edited.docx)
         :return: Result with XML content or download link
         """
         emitter = EventEmitter(__event_emitter__, __user__)
@@ -452,14 +454,16 @@ Packer.toBuffer(doc).then(buffer => {{
             temp_dir = self._ensure_temp_dir()
             scripts_dir = self.valves.SCRIPTS_DIR
 
+            out_name = output_filename or ""
+
             if operation == "unpack":
                 return await self._op_unpack(file_path, temp_dir, scripts_dir, emitter)
             elif operation == "replace_text":
-                return await self._op_replace_text(file_path, parameters, temp_dir, scripts_dir, emitter)
+                return await self._op_replace_text(file_path, parameters, temp_dir, scripts_dir, emitter, out_name)
             elif operation == "replace_xml":
-                return await self._op_replace_xml(file_path, parameters, temp_dir, scripts_dir, emitter)
+                return await self._op_replace_xml(file_path, parameters, temp_dir, scripts_dir, emitter, out_name)
             elif operation == "accept_changes":
-                return await self._op_accept_changes(file_path, temp_dir, scripts_dir, emitter)
+                return await self._op_accept_changes(file_path, temp_dir, scripts_dir, emitter, out_name)
             elif operation == "add_comment":
                 return await self._op_add_comment(file_path, parameters, temp_dir, scripts_dir, emitter)
             elif operation == "repack":
@@ -886,11 +890,14 @@ Packer.toBuffer(doc).then(buffer => {{
             result_text += "\n(truncated)"
         return result_text
 
-    async def _op_replace_text(self, file_path, parameters, temp_dir, scripts_dir, emitter) -> str:
+    async def _op_replace_text(self, file_path, parameters, temp_dir, scripts_dir, emitter, output_filename="") -> str:
         parts = parameters.split("|||")
         if len(parts) != 2:
             return "Error: format is 'old_text|||new_text'"
         old_text, new_text = parts
+
+        base_name = Path(file_path).stem
+        fname = output_filename or f"{base_name}_edited.docx"
 
         # Unpack → replace in XML → repack
         unpack_dir = os.path.join(temp_dir, "edit_unpack")
@@ -906,8 +913,7 @@ Packer.toBuffer(doc).then(buffer => {{
             # Try across XML tags (text split across runs)
             from docx import Document
             doc = Document(file_path)
-            base_name = Path(file_path).stem
-            output_path = os.path.join(temp_dir, f"{base_name}_edited.docx")
+            output_path = os.path.join(temp_dir, fname)
             replaced = 0
             for para in doc.paragraphs:
                 if old_text in para.text:
@@ -916,22 +922,25 @@ Packer.toBuffer(doc).then(buffer => {{
                             run.text = run.text.replace(old_text, new_text)
                             replaced += 1
             doc.save(output_path)
-            await emitter.send_file_link(output_path, f"{base_name}_edited.docx")
+            await emitter.send_file_link(output_path, fname)
             await emitter.success("Text replaced (python-docx)")
             return f"Replaced {replaced} occurrence(s) via python-docx (text was split across XML runs)."
 
         content = content.replace(old_text, new_text)
         Path(doc_xml).write_text(content, encoding="utf-8")
 
-        output_path = self._simple_repack(unpack_dir, temp_dir, Path(file_path).stem + "_edited.docx")
-        await emitter.send_file_link(output_path, Path(output_path).name)
+        output_path = self._simple_repack(unpack_dir, temp_dir, fname)
+        await emitter.send_file_link(output_path, fname)
         await emitter.success("Text replaced")
         return f"Replaced {count} occurrence(s) of '{old_text}' in XML."
 
-    async def _op_replace_xml(self, file_path, parameters, temp_dir, scripts_dir, emitter) -> str:
+    async def _op_replace_xml(self, file_path, parameters, temp_dir, scripts_dir, emitter, output_filename="") -> str:
         parts = parameters.split("|||")
         if len(parts) != 2:
             return "Error: format is 'old_xml|||new_xml'"
+
+        base_name = Path(file_path).stem
+        fname = output_filename or f"{base_name}_edited.docx"
 
         unpack_dir = os.path.join(temp_dir, "edit_unpack")
         self._simple_unpack(file_path, unpack_dir)
@@ -942,15 +951,16 @@ Packer.toBuffer(doc).then(buffer => {{
         content = content.replace(parts[0], parts[1])
         Path(doc_xml).write_text(content, encoding="utf-8")
 
-        output_path = self._simple_repack(unpack_dir, temp_dir, Path(file_path).stem + "_edited.docx")
-        await emitter.send_file_link(output_path, Path(output_path).name)
+        output_path = self._simple_repack(unpack_dir, temp_dir, fname)
+        await emitter.send_file_link(output_path, fname)
         await emitter.success("XML replaced")
         return f"Replaced {count} XML fragment(s)."
 
-    async def _op_accept_changes(self, file_path, temp_dir, scripts_dir, emitter) -> str:
+    async def _op_accept_changes(self, file_path, temp_dir, scripts_dir, emitter, output_filename="") -> str:
         accept_script = os.path.join(scripts_dir, "accept_changes.py")
         base_name = Path(file_path).stem
-        output_path = os.path.join(temp_dir, f"{base_name}_accepted.docx")
+        fname = output_filename or f"{base_name}_accepted.docx"
+        output_path = os.path.join(temp_dir, fname)
 
         if os.path.exists(accept_script):
             result = subprocess.run(
@@ -959,9 +969,9 @@ Packer.toBuffer(doc).then(buffer => {{
                 cwd=scripts_dir,
             )
             if os.path.exists(output_path):
-                await emitter.send_file_link(output_path, f"{base_name}_accepted.docx")
+                await emitter.send_file_link(output_path, fname)
                 await emitter.success("Changes accepted")
-                return f"Accepted all tracked changes. Output: {base_name}_accepted.docx\n{result.stdout}"
+                return f"Accepted all tracked changes. Output: {fname}\n{result.stdout}"
             return f"Error: {result.stdout}\n{result.stderr}"
         else:
             # Fallback: direct LibreOffice call
@@ -997,7 +1007,7 @@ Packer.toBuffer(doc).then(buffer => {{
                     return f"Error: LibreOffice not found at '{soffice}'."
 
             if os.path.exists(output_path):
-                await emitter.send_file_link(output_path, f"{base_name}_accepted.docx")
+                await emitter.send_file_link(output_path, fname)
                 await emitter.success("Changes accepted (fallback)")
                 return f"Accepted tracked changes (fallback mode)."
             return "Error: Failed to accept changes."

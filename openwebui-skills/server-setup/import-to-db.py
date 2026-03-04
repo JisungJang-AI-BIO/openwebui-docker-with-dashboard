@@ -252,11 +252,23 @@ def main():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # ── Find user_id (prefer admin) ──
-    cur.execute(
-        'SELECT id, name FROM "user" WHERE role = \'admin\' ORDER BY created_at LIMIT 1'
-    )
-    row = cur.fetchone()
+    # ── Find user_id ──
+    # Override with IMPORT_USER_EMAIL env var to import under a specific account
+    import_email = os.environ.get("IMPORT_USER_EMAIL", "")
+    row = None
+    if import_email:
+        cur.execute(
+            'SELECT id, name FROM "user" WHERE email = %s LIMIT 1', (import_email,)
+        )
+        row = cur.fetchone()
+        if not row:
+            print(f"\n  WARNING: User '{import_email}' not found, falling back to admin.")
+
+    if not row:
+        cur.execute(
+            'SELECT id, name FROM "user" WHERE role = \'admin\' ORDER BY created_at LIMIT 1'
+        )
+        row = cur.fetchone()
     if not row:
         cur.execute('SELECT id, name FROM "user" ORDER BY created_at LIMIT 1')
         row = cur.fetchone()

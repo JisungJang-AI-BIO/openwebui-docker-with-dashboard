@@ -321,6 +321,7 @@ class Tools:
         self,
         operation: str,
         parameters: str = "",
+        output_filename: str = "",
         __files__: list = None,
         __user__: dict = None,
         __event_emitter__: Callable[[dict], Any] = None,
@@ -336,6 +337,7 @@ class Tools:
 
         :param operation: Operation name
         :param parameters: Operation-specific parameters
+        :param output_filename: Custom output filename (default: {original}_edited.xlsx)
         :return: Edited file download link
         """
         emitter = EventEmitter(__event_emitter__, __user__)
@@ -411,7 +413,8 @@ class Tools:
                 return f"Error: Unknown operation '{operation}'. Available: set_cell, add_sheet, delete_sheet, add_row"
 
             temp_dir = self._ensure_temp_dir()
-            output_filename = f"{base_name}_edited.xlsx"
+            if not output_filename:
+                output_filename = f"{base_name}_edited.xlsx"
             output_path = os.path.join(temp_dir, output_filename)
             wb.save(output_path)
             wb.close()

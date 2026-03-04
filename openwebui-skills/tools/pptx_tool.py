@@ -308,6 +308,7 @@ class Tools:
         self,
         operation: str,
         parameters: str = "",
+        output_filename: str = "",
         __files__: list = None,
         __user__: dict = None,
         __event_emitter__: Callable[[dict], Any] = None,
@@ -322,6 +323,7 @@ class Tools:
 
         :param operation: Operation name
         :param parameters: Operation-specific parameters
+        :param output_filename: Custom output filename (default: {original}_edited.pptx)
         :return: Edited file download link
         """
         emitter = EventEmitter(__event_emitter__, __user__)
@@ -383,7 +385,8 @@ class Tools:
                 return f"Error: Unknown operation '{operation}'. Available: replace_text, delete_slide, add_slide"
 
             temp_dir = self._ensure_temp_dir()
-            output_filename = f"{base_name}_edited.pptx"
+            if not output_filename:
+                output_filename = f"{base_name}_edited.pptx"
             output_path = os.path.join(temp_dir, output_filename)
             prs.save(output_path)
 
