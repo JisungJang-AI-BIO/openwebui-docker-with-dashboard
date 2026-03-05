@@ -160,6 +160,31 @@ export const deletePackage = (id: number, authUser: string) =>
 export const updatePackageStatus = (id: number, status: string, authUser: string, note?: string) =>
   api.patch(`/api/v1/packages/${id}/status`, { status, status_note: note }, { headers: { "X-Auth-User": authUser } }).then((r) => r.data);
 
+export interface IssueReport {
+  id: number;
+  title: string;
+  description: string;
+  category: "bug" | "feature" | "question" | "other";
+  reported_by: string;
+  is_anonymous: boolean;
+  status: "open" | "in_progress" | "resolved" | "rejected" | "wontfix";
+  admin_note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export const fetchReports = () =>
+  api.get<PaginatedResponse<IssueReport>>("/api/v1/reports?limit=200").then((r) => r.data.items);
+
+export const createReport = (data: { title: string; description: string; category: string; is_anonymous: boolean }, authUser: string) =>
+  api.post<IssueReport>("/api/v1/reports", data, { headers: { "X-Auth-User": authUser } }).then((r) => r.data);
+
+export const updateReportStatus = (id: number, status: string, authUser: string, adminNote?: string) =>
+  api.patch(`/api/v1/reports/${id}/status`, { status, admin_note: adminNote }, { headers: { "X-Auth-User": authUser } }).then((r) => r.data);
+
+export const deleteReport = (id: number, authUser: string) =>
+  api.delete(`/api/v1/reports/${id}`, { headers: { "X-Auth-User": authUser } }).then((r) => r.data);
+
 export interface AuthMe {
   user: string;
   is_admin: boolean;

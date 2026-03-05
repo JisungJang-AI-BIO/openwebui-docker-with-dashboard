@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { MessagesSquare, MessageSquare, Bot, ThumbsUp, Wrench, Puzzle, Sparkles } from "lucide-react";
 import StatCard from "@/components/StatCard";
 import DailyChart from "@/components/DailyChart";
+import TabGroup from "@/components/TabGroup";
 import WorkspaceRankingTable from "@/components/WorkspaceRankingTable";
 import DeveloperRankingTable from "@/components/DeveloperRankingTable";
 import UserRankingTable from "@/components/UserRankingTable";
@@ -11,6 +12,7 @@ import ToolRankingTable from "@/components/ToolRankingTable";
 import FunctionRankingTable from "@/components/FunctionRankingTable";
 import SkillRankingTable from "@/components/SkillRankingTable";
 import RequirePackages from "@/components/RequirePackages";
+import IssueReports from "@/components/IssueReports";
 import MockAuthBanner from "@/components/MockAuthBanner";
 import {
   fetchOverview, fetchDailyStats, fetchWorkspaceRanking,
@@ -22,6 +24,12 @@ import {
 } from "@/lib/api";
 
 const PAGE_SIZE = 20;
+
+const TABS = [
+  { id: "usage", label: "Usage Rankings" },
+  { id: "assets", label: "Asset Registry" },
+  { id: "requests", label: "Requests & Reports" },
+];
 
 function kstDate(offsetDays: number): string {
   const d = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
@@ -45,6 +53,7 @@ export default function Dashboard() {
   const dateTo = searchParams.get("to") || kstDate(-1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("usage");
 
   const [wsOffset, setWsOffset] = useState(0);
   const [wsTotal, setWsTotal] = useState(0);
@@ -137,6 +146,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Stats + Chart (always visible) */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard title="Total Chats" value={overview?.total_chats ?? 0} icon={MessagesSquare} />
         <StatCard title="Total Messages" value={overview?.total_messages ?? 0} icon={MessageSquare} />
@@ -147,14 +157,37 @@ export default function Dashboard() {
         <StatCard title="Skills" value={overview?.total_skills ?? 0} icon={Sparkles} />
       </div>
       <DailyChart data={daily} dateFrom={dateFrom} dateTo={dateTo} onDateChange={handleDateChange} />
-      <WorkspaceRankingTable data={workspaces} total={wsTotal} offset={wsOffset} limit={PAGE_SIZE} onPageChange={handleWsPage} />
-      <DeveloperRankingTable data={developers} total={devTotal} offset={devOffset} limit={PAGE_SIZE} onPageChange={handleDevPage} />
-      <UserRankingTable data={users} total={usrTotal} offset={usrOffset} limit={PAGE_SIZE} onPageChange={handleUsrPage} />
-      <GroupRankingTable data={groups} total={grpTotal} offset={grpOffset} limit={PAGE_SIZE} onPageChange={handleGrpPage} />
-      <ToolRankingTable data={tools} total={toolTotal} offset={toolOffset} limit={PAGE_SIZE} onPageChange={handleToolPage} />
-      <FunctionRankingTable data={functions} total={fnTotal} offset={fnOffset} limit={PAGE_SIZE} onPageChange={handleFnPage} />
-      <SkillRankingTable data={skills} total={skillTotal} offset={skillOffset} limit={PAGE_SIZE} onPageChange={handleSkillPage} />
-      <RequirePackages currentUser={mockUser} />
+
+      {/* Tab navigation */}
+      <TabGroup tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
+
+      {/* Tab: Usage Rankings */}
+      {activeTab === "usage" && (
+        <div className="space-y-6">
+          <WorkspaceRankingTable data={workspaces} total={wsTotal} offset={wsOffset} limit={PAGE_SIZE} onPageChange={handleWsPage} />
+          <DeveloperRankingTable data={developers} total={devTotal} offset={devOffset} limit={PAGE_SIZE} onPageChange={handleDevPage} />
+          <UserRankingTable data={users} total={usrTotal} offset={usrOffset} limit={PAGE_SIZE} onPageChange={handleUsrPage} />
+          <GroupRankingTable data={groups} total={grpTotal} offset={grpOffset} limit={PAGE_SIZE} onPageChange={handleGrpPage} />
+        </div>
+      )}
+
+      {/* Tab: Asset Registry */}
+      {activeTab === "assets" && (
+        <div className="space-y-6">
+          <ToolRankingTable data={tools} total={toolTotal} offset={toolOffset} limit={PAGE_SIZE} onPageChange={handleToolPage} />
+          <FunctionRankingTable data={functions} total={fnTotal} offset={fnOffset} limit={PAGE_SIZE} onPageChange={handleFnPage} />
+          <SkillRankingTable data={skills} total={skillTotal} offset={skillOffset} limit={PAGE_SIZE} onPageChange={handleSkillPage} />
+        </div>
+      )}
+
+      {/* Tab: Requests & Reports */}
+      {activeTab === "requests" && (
+        <div className="space-y-6">
+          <RequirePackages currentUser={mockUser} />
+          <IssueReports currentUser={mockUser} />
+        </div>
+      )}
+
       <MockAuthBanner user={mockUser} onChangeUser={(u) => { setMockUser(u); localStorage.setItem("mockUser", u); }} />
     </div>
   );

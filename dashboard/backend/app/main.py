@@ -83,6 +83,16 @@ class PackageStatusUpdate(BaseModel):
     status: str
     status_note: Optional[str] = None
 
+class ReportCreate(BaseModel):
+    title: str
+    description: str
+    category: str = "bug"
+    is_anonymous: bool = False
+
+class ReportStatusUpdate(BaseModel):
+    status: str
+    admin_note: Optional[str] = None
+
 
 @app.on_event("startup")
 def create_tables():
@@ -110,6 +120,21 @@ def create_tables():
                 performed_by VARCHAR(255) NOT NULL,
                 detail TEXT,
                 created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        """))
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS issue_reports (
+                id SERIAL PRIMARY KEY,
+                title VARCHAR(255) NOT NULL,
+                description TEXT NOT NULL,
+                category VARCHAR(50) DEFAULT 'bug',
+                reported_by VARCHAR(255),
+                is_anonymous BOOLEAN DEFAULT false,
+                status VARCHAR(20) DEFAULT 'open',
+                admin_note TEXT,
+                status_updated_by VARCHAR(255),
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                updated_at TIMESTAMPTZ DEFAULT NOW()
             )
         """))
         conn.commit()
@@ -838,6 +863,148 @@ def get_audit_log(
             for row in rows
         ],
     }
+
+
+# ─── Issue Reports ────────────────────────────────────────────────────
+
+VALID_REPORT_CATEGORIES = ("bug", "feature", "question", "other")
+VALID_REPORT_STATUSES = ("open", "in_progress", "resolved", "rejected", "wontfix")
+
+
+@v1.get("/reports")
+def list_reports(
+    response: Response,
+    offset: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+):
+    response.headers["Cache-Control"] = "no-cache"
+    rows = db.execute(text("""
+        SELECT id, title, description, category, reported_by, is_anonymous,
+               status, admin_note,
+               created_at AT TIME ZONE 'Asia/Seoul' as created_at,
+               updated_at AT TIME ZONE 'Asia/Seoul' as updated_at,
+               count(*) OVER() as _total
+        FROM issue_reports
+        ORDER BY created_at DESC
+        LIMIT :limit OFFSET :offset
+    """), {"limit": limit, "offset": offset}).mappings().all()
+    total = rows[0]["_total"] if rows else 0
+    return {
+        "total": total,
+        "offset": offset,
+        "limit": limit,
+        "items": [
+            {
+                "id": row["id"],
+                "title": row["title"],
+                "description": row["description"],
+                "category": row["category"],
+                "reported_by": "Anonymous" if row["is_anonymous"] else (row["reported_by"] or "Unknown"),
+                "is_anonymous": row["is_anonymous"],
+                "status": row["status"],
+                "admin_note": row["admin_note"],
+                "created_at": str(row["created_at"]),
+                "updated_at": str(row["updated_at"]),
+            }
+            for row in rows
+        ],
+    }
+
+
+@v1.post("/reports", status_code=201)
+def create_report(
+    body: ReportCreate,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    if not body.title.strip():
+        raise HTTPException(status_code=400, detail="Title cannot be empty")
+    if not body.description.strip():
+        raise HTTPException(status_code=400, detail="Description cannot be empty")
+    if body.category not in VALID_REPORT_CATEGORIES:
+        raise HTTPException(status_code=400, detail=f"Category must be one of: {', '.join(VALID_REPORT_CATEGORIES)}")
+    try:
+        result = db.execute(
+            text("""INSERT INTO issue_reports (title, description, category, reported_by, is_anonymous)
+                    VALUES (:title, :desc, :cat, :user, :anon)
+                    RETURNING id, title, description, category, reported_by, is_anonymous,
+                              status, admin_note,
+                              created_at AT TIME ZONE 'Asia/Seoul' as created_at,
+                              updated_at AT TIME ZONE 'Asia/Seoul' as updated_at"""),
+            {
+                "title": body.title.strip(),
+                "desc": body.description.strip(),
+                "cat": body.category,
+                "user": current_user,
+                "anon": body.is_anonymous,
+            },
+        )
+        row = result.mappings().first()
+        db.commit()
+        return {
+            "id": row["id"],
+            "title": row["title"],
+            "description": row["description"],
+            "category": row["category"],
+            "reported_by": "Anonymous" if row["is_anonymous"] else row["reported_by"],
+            "is_anonymous": row["is_anonymous"],
+            "status": row["status"],
+            "admin_note": row["admin_note"],
+            "created_at": str(row["created_at"]),
+            "updated_at": str(row["updated_at"]),
+        }
+    except Exception as e:
+        db.rollback()
+        logger.exception("Failed to create report")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@v1.patch("/reports/{report_id}/status")
+def update_report_status(
+    report_id: int,
+    body: ReportStatusUpdate,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    if current_user not in ADMIN_USERS:
+        raise HTTPException(status_code=403, detail="Only admins can change report status")
+    if body.status not in VALID_REPORT_STATUSES:
+        raise HTTPException(status_code=400, detail=f"Status must be one of: {', '.join(VALID_REPORT_STATUSES)}")
+    row = db.execute(
+        text("SELECT id FROM issue_reports WHERE id = :id"),
+        {"id": report_id},
+    ).mappings().first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Report not found")
+    db.execute(
+        text("""UPDATE issue_reports
+                SET status = :status, admin_note = :note,
+                    status_updated_by = :user, updated_at = NOW()
+                WHERE id = :id"""),
+        {"id": report_id, "status": body.status, "note": body.admin_note, "user": current_user},
+    )
+    db.commit()
+    return {"ok": True}
+
+
+@v1.delete("/reports/{report_id}")
+def delete_report(
+    report_id: int,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    row = db.execute(
+        text("SELECT id, reported_by FROM issue_reports WHERE id = :id"),
+        {"id": report_id},
+    ).mappings().first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Report not found")
+    if row["reported_by"] != current_user and current_user not in ADMIN_USERS:
+        raise HTTPException(status_code=403, detail="You can only delete your own reports")
+    db.execute(text("DELETE FROM issue_reports WHERE id = :id"), {"id": report_id})
+    db.commit()
+    return {"ok": True}
 
 
 app.include_router(v1)
