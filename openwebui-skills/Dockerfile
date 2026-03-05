@@ -54,8 +54,26 @@ COPY tests/ ./tests/
 # --- Python dependencies ---
 RUN pip install --no-cache-dir -r requirements.txt
 
+# --- MinerU (PDF content extraction engine, pipeline mode) ---
+RUN pip install --no-cache-dir "mineru[core]" && \
+    mineru-models-download || echo "WARN: MinerU model download failed (will retry at runtime)"
+
+# --- Pre-download embedding models (switch via Admin > Documents > Embedding Model) ---
+ENV SENTENCE_TRANSFORMERS_HOME=/opt/embedding-models
+RUN python3 -c "\
+from sentence_transformers import SentenceTransformer; \
+print('Downloading Qwen3-Embedding-0.6B...'); SentenceTransformer('Qwen/Qwen3-Embedding-0.6B'); \
+print('Downloading Qwen3-Embedding-4B...');  SentenceTransformer('Qwen/Qwen3-Embedding-4B'); \
+print('Downloading Qwen3-Embedding-8B...');  SentenceTransformer('Qwen/Qwen3-Embedding-8B'); \
+print('All embedding models downloaded.')"
+
 # --- Anthropic vendor scripts ---
 RUN bash server-setup/clone-anthropic-scripts.sh /app/OpenWebUI-Skills
 
+# --- Entrypoint: start MinerU API + OpenWebUI ---
+COPY server-setup/entrypoint.sh /app/backend/entrypoint.sh
+RUN chmod +x /app/backend/entrypoint.sh
+
 # Restore base image's working directory so start.sh is found on container startup
 WORKDIR /app/backend
+CMD ["bash", "entrypoint.sh"]
